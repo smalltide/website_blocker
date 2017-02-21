@@ -1,35 +1,32 @@
-import folium
-import pandas
+import time
+from datetime import datetime as dt
 
-df = pandas.read_csv('Volcanoes-USA.txt')
+host_temp = 'hosts'
+host_path = r'/etc/hosts'
+redirect = '127.0.0.1'
+website_list = ['www.facebook.com', 'facebook.com']
 
-map = folium.Map(location = [df['LAT'].mean(), df['LON'].mean()], zoom_start = 4, tiles = 'Mapbox Bright' )
+def is_work_time():
+    return dt(dt.now().year, dt.now().month, dt.now().day, 8) < dt.now() < dt(dt.now().year, dt.now().month, dt.now().day, 16)
 
-def color(elev):
-    minimum = int(df['ELEV'].min())
-    step = int((df['ELEV'].max() - df['ELEV'].min()) / 3)
-
-    if elev in range(minimum, minimum + step):
-        col = 'green'
-    elif elev in range(minimum + step, minimum + step * 2):
-        col = 'orange'
+while True:
+    if is_work_time():
+        print('Working hours')
+        with open(host_temp, 'r+') as file:
+            content = file.read()
+            print(content)
+            for website in website_list:
+                if website in content:
+                    pass
+                else:
+                    file.write(f'{redirect} {website}\n')
     else:
-        col = 'red'
-    return col
-
-fg = folium.FeatureGroup(name = 'Volcano Locations')
-
-for lat, lon, name, elev in zip(df['LAT'], df['LON'], df['NAME'], df['ELEV']):
-    fg.add_child(folium.Marker(location = [lat, lon], popup = name, icon=folium.Icon(color(elev))))
-
-map.add_child(fg)
-
-map.add_child(folium.GeoJson(
-    data = open('world.json'),
-    name = 'World population',
-    style_function = lambda x: { 'fillColor': 'green' if int(x['properties']['POP2005']) <= 10000000 else 'orange' if 10000000 < int(x['properties']['POP2005']) < 20000000 else 'red' }
-))
-
-map.add_child(folium.LayerControl())
-
-map.save(outfile = 'map.html')
+        with open(host_temp, 'r+') as file:
+            content = file.readlines()
+            file.seek(0)
+            for line in content:
+                if not any(website in line for website in website_list):
+                    file.write(line)
+            file.truncate()
+        print('Fun hours')
+    time.sleep(5)
